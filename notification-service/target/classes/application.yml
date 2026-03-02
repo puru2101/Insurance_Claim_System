@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: NOTIFICATION-SERVICE
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/insurance_notification_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:insurance_app}
+    password: ${DB_PASSWORD:AppPass123!}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+  # Mail config — use real SMTP in production, mock in dev
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:noreply@insurance.com}
+    password: ${MAIL_PASSWORD:changeme}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.timeout: 5000
+      mail.smtp.connectiontimeout: 5000
+
+server:
+  port: ${SERVER_PORT:8085}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_USERNAME:eureka-admin}:${EUREKA_PASSWORD:eureka-secret}@${EUREKA_HOST:localhost}:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: false
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+app:
+  notification:
+    # Set to true in production with real SMTP configured
+    email-enabled: ${EMAIL_ENABLED:false}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
+logging:
+  level:
+    root: INFO
+    com.insurance.notification: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{30} - %msg%n"
+  file:
+    name: logs/notification-service.log

@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: POLICY-SERVICE
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/insurance_policy_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:insurance_app}
+    password: ${DB_PASSWORD:AppPass123!}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      pool-name: PolicyServiceHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+server:
+  port: ${SERVER_PORT:8084}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_USERNAME:eureka-admin}:${EUREKA_PASSWORD:eureka-secret}@${EUREKA_HOST:localhost}:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: false
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+jwt:
+  secret: ${JWT_SECRET:InsuranceClaimSystem-SuperSecret-Key-2024-ChangeInProduction!}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    root: INFO
+    com.insurance.policy: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{30} - %msg%n"
+  file:
+    name: logs/policy-service.log

@@ -1,0 +1,7 @@
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\exception\GlobalGatewayExceptionHandler.java
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\filter\JwtAuthenticationFilter.java
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\ApiGatewayApplication.java
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\exception\FallbackController.java
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\config\GatewaySecurityConfig.java
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\config\JwtUtil.java
+C:\Projects\insurance-claim-system (2)\api-gateway\src\main\java\com\insurance\gateway\filter\RequestLoggingFilter.java

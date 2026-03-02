@@ -1,0 +1,208 @@
+# ============================================================
+#  API Gateway - Application Configuration
+#  Insurance Claim System
+# ============================================================
+
+spring:
+  application:
+    name: api-gateway
+
+  # ============================================================
+  #  Spring Cloud Gateway Routes
+  #
+  #  Each "route" defines:
+  #    id:         A unique name for this route
+  #    uri:        Where to forward the request
+  #                lb://SERVICE-NAME = Load Balanced (uses Eureka)
+  #    predicates: Conditions that must match for this route to apply
+  #    filters:    Transformations applied to request/response
+  # ============================================================
+  cloud:
+    gateway:
+      routes:
+
+        # ===== AUTH SERVICE =====
+        # Handles: login, register, token refresh, password reset
+        - id: auth-service
+          uri: lb://AUTH-SERVICE          # "lb://" = look up in Eureka by service name
+          predicates:
+            - Path=/api/auth/**           # Matches: /api/auth/login, /api/auth/register, etc.
+          filters:
+            - StripPrefix=1              # Removes /api prefix before forwarding
+                                          # /api/auth/login → /auth/login
+
+        # ===== USER SERVICE =====
+        # Handles: user profile, user management, admin user operations
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
+            # Add circuit breaker — fallback if user-service is down
+            - name: CircuitBreaker
+              args:
+                name: user-service-cb
+                fallbackUri: forward:/fallback/user-service
+
+        # ===== CLAIM SERVICE (Main Business Service) =====
+        # Handles: create/view/update insurance claims
+        - id: claim-service
+          uri: lb://CLAIM-SERVICE
+          predicates:
+            - Path=/api/claims/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: claim-service-cb
+                fallbackUri: forward:/fallback/claim-service
+
+        # ===== POLICY SERVICE =====
+        # Handles: insurance policies, coverage details
+        - id: policy-service
+          uri: lb://POLICY-SERVICE
+          predicates:
+            - Path=/api/policies/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: policy-service-cb
+                fallbackUri: forward:/fallback/policy-service
+
+        # ===== NOTIFICATION SERVICE =====
+        # Handles: email/SMS notifications
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=1
+
+      # ============================================================
+      #  Default Filters (applied to ALL routes)
+      # ============================================================
+      default-filters:
+        # Add response time header to all responses
+        - AddResponseHeader=X-Response-Time, ${spring.application.name}
+        # Retry failed requests (useful for transient network errors)
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+            methods: GET   # Only retry GET requests (safe to retry, no side effects)
+
+      # ============================================================
+      #  Global Timeout Settings
+      # ============================================================
+      httpclient:
+        connect-timeout: 5000   # 5 seconds to establish connection
+        response-timeout: 30s   # 30 seconds to receive response
+
+  # Redis for Rate Limiting (requires Redis running)
+  # In dev profile, we use a simple in-memory rate limiter
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# ============================================================
+#  Eureka Client Configuration
+# ============================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_USERNAME:eureka-admin}:${EUREKA_PASSWORD:eureka-secret}@${EUREKA_HOST:localhost}:8761/eureka/
+    register-with-eureka: true    # Register gateway itself in Eureka
+    fetch-registry: true          # Download service registry to find other services
+    registry-fetch-interval-seconds: 5  # How often to refresh the registry
+
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+# ============================================================
+#  JWT Configuration (must match auth-service's secret!)
+# ============================================================
+jwt:
+  secret: ${JWT_SECRET:InsuranceClaimSystem-SuperSecret-Key-2024-ChangeInProduction!}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # 24 hours
+
+# ============================================================
+#  Resilience4j Circuit Breaker Configuration
+#
+#  Circuit Breaker pattern:
+#    CLOSED (normal) → calls go through
+#    OPEN (tripped)  → calls fail fast (no waiting for timeout)
+#    HALF-OPEN       → test calls to check if service recovered
+# ============================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10             # Evaluate last 10 calls
+        failureRateThreshold: 50          # Open circuit if 50%+ calls fail
+        waitDurationInOpenState: 10s      # Wait 10s before trying again (HALF-OPEN)
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 30s
+
+# ============================================================
+#  Actuator
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true    # Shows all configured routes
+
+# ============================================================
+#  Logging
+# ============================================================
+logging:
+  level:
+    root: INFO
+    com.insurance: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway.filter: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId}] [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/api-gateway.log
+
+---
+# ============================================================
+#  DEV Profile
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # In dev: allow Redis to be unavailable (no rate limiting)
+  data:
+    redis:
+      host: localhost
+
+logging:
+  level:
+    com.insurance: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: DEBUG

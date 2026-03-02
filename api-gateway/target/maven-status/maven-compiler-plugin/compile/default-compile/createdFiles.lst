@@ -1,0 +1,7 @@
+com\insurance\gateway\exception\FallbackController.class
+com\insurance\gateway\config\GatewaySecurityConfig.class
+com\insurance\gateway\config\JwtUtil.class
+com\insurance\gateway\filter\RequestLoggingFilter.class
+com\insurance\gateway\exception\GlobalGatewayExceptionHandler.class
+com\insurance\gateway\ApiGatewayApplication.class
+com\insurance\gateway\filter\JwtAuthenticationFilter.class

@@ -1,0 +1,112 @@
+# ============================================================
+#  Eureka Service Registry - Application Configuration
+#  Insurance Claim System
+# ============================================================
+
+spring:
+  application:
+    name: eureka-server   # Service name shown in registry
+
+  # Security credentials for Eureka dashboard and client access
+  # In production: use environment variables or a secrets manager
+  security:
+    user:
+      name: ${EUREKA_USERNAME:eureka-admin}
+      password: ${EUREKA_PASSWORD:eureka-secret}
+
+server:
+  port: ${SERVER_PORT:8761}   # Standard Eureka port
+
+# ============================================================
+#  Eureka Server Configuration
+# ============================================================
+eureka:
+  instance:
+    hostname: ${EUREKA_HOST:localhost}
+    prefer-ip-address: false
+
+  client:
+    # This server should NOT register itself as a client
+    # It IS the registry, not a service to be registered
+    register-with-eureka: false
+    fetch-registry: false
+
+    service-url:
+      # The URL that other services will use to register
+      defaultZone: http://${spring.security.user.name}:${spring.security.user.password}@${eureka.instance.hostname}:${server.port}/eureka/
+
+  server:
+    # How long to wait before removing an unresponsive service (in ms)
+    # Default: 60s. Lower in dev, keep default in prod.
+    eviction-interval-timer-in-ms: 10000
+
+    # Enable self-preservation mode in production
+    # When enabled, Eureka won't remove services even if heartbeats stop
+    # (protects against network partition false positives)
+    enable-self-preservation: false  # false in dev for faster feedback
+
+    # Response cache TTL (how quickly new registrations show up)
+    response-cache-update-interval-ms: 5000
+
+  # Security credentials for internal use
+  security:
+    username: ${EUREKA_USERNAME:eureka-admin}
+    password: ${EUREKA_PASSWORD:eureka-secret}
+
+# ============================================================
+#  Actuator - Health Check Endpoints
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+# Application metadata shown on Eureka dashboard
+info:
+  app:
+    name: Insurance Claim System - Service Registry
+    version: 1.0.0
+    description: Central Eureka Service Registry for all microservices
+
+# ============================================================
+#  Logging Configuration
+# ============================================================
+logging:
+  level:
+    root: INFO
+    com.insurance: DEBUG
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/eureka-server.log
+    max-size: 10MB
+    max-history: 30
+
+---
+# ============================================================
+#  DEV Profile - Relaxed settings for local development
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+eureka:
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 5000
+
+logging:
+  level:
+    com.insurance: DEBUG
+    com.netflix.eureka: DEBUG

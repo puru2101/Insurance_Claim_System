@@ -1,0 +1,99 @@
+# ============================================================
+#  Auth Service - Application Configuration
+# ============================================================
+
+spring:
+  application:
+    name: AUTH-SERVICE   # Must be UPPERCASE for Eureka lookup by gateway
+
+  # ── MySQL ───────────────────────────────────────────────
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/insurance_auth_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:insurance_app}
+    password: ${DB_PASSWORD:AppPass123!}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: AuthServiceHikariPool
+
+  # ── JPA / Hibernate ─────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: update     # auto-creates/updates tables; use 'validate' in prod
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  # ── Kafka ───────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      retries: 3
+      acks: all
+
+server:
+  port: ${SERVER_PORT:8081}
+
+# ── Eureka ──────────────────────────────────────────────
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_USERNAME:eureka-admin}:${EUREKA_PASSWORD:eureka-secret}@${EUREKA_HOST:localhost}:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: false     # auth-service doesn't need to call other services
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+
+# ── JWT ─────────────────────────────────────────────────
+jwt:
+  secret: ${JWT_SECRET:InsuranceClaimSystem-SuperSecret-Key-2024-ChangeInProduction!}
+  access-token-expiration-ms: ${JWT_ACCESS_EXPIRY_MS:3600000}     # 1 hour
+  refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRY_MS:604800000} # 7 days
+
+# ── Actuator ────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# ── Logging ─────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.insurance.auth: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId}] [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/auth-service.log
+
+---
+# ── DEV Profile ─────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.insurance.auth: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG

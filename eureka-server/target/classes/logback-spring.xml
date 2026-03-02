@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ========================================================
+         Logback Configuration for Eureka Server
+         Insurance Claim System
+    ========================================================= -->
+
+    <!-- Log file location (passed from application.yml or env var) -->
+    <springProperty scope="context" name="LOG_FILE" source="logging.file.name" defaultValue="logs/eureka-server.log"/>
+
+    <!-- ===== CONSOLE APPENDER ===== -->
+    <!-- Colored output for development readability -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%cyan(%thread)] %yellow(%logger{40}) - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== FILE APPENDER ===== -->
+    <!-- Rolling file log: rotates daily, keeps 30 days, max 100MB total -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <!-- Structured log format — easier to parse with log aggregators (ELK, Splunk) -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{40} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== LOGGER LEVELS ===== -->
+    <logger name="com.insurance" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Reduce noise from Eureka internals -->
+    <logger name="com.netflix.eureka" level="INFO"/>
+    <logger name="com.netflix.discovery" level="INFO"/>
+    <logger name="org.springframework.cloud" level="INFO"/>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

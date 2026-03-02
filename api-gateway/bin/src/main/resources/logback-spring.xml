@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProperty scope="context" name="LOG_FILE" source="logging.file.name" defaultValue="logs/api-gateway.log"/>
+
+    <!-- ===== CONSOLE APPENDER ===== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- Include correlationId from MDC if present -->
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%cyan(%X{correlationId:-GATEWAY})] [%thread] %yellow(%logger{30}) - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== FILE APPENDER ===== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-GATEWAY}] [%thread] %logger{40} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Application logs -->
+    <logger name="com.insurance" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Reduce gateway framework noise -->
+    <logger name="org.springframework.cloud.gateway" level="INFO"/>
+    <logger name="reactor.netty" level="WARN"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>
